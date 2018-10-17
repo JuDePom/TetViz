@@ -1,0 +1,11 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+ADD_EXECUTABLE( TetViz
+	TetViz.h
+	TetViz.cpp
+  )
+
+TARGET_LINK_LIBRARIES(TetViz
+	LibSL
+	LibSL_gl
+)
