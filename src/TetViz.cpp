@@ -238,6 +238,7 @@ LIBSL_WIN32_FIX
 #define SCREEN_W 1024
 #define SCREEN_H 768
 
+MeshFormat_msh                                 g_meshformat;
 TriangleMesh_Ptr                               g_Mesh;
 MeshRenderer<MeshFormat_msh::t_VertexFormat>*  g_Renderer;
 
@@ -278,13 +279,46 @@ void mainRender()
 
   GPUHelpers::Transform::set(LIBSL_MODELVIEW_MATRIX, TrackballUI::matrix());
 
-  g_Renderer->render();
+  //g_Renderer->render();
+
+  ImGui::Button("test", ImVec2(100, 100));
+
+  /// draw edges
+
+  glLineWidth(2.5);
+  glColor3f(1.0, 0.0, 0.0);
+  glBegin(GL_TRIANGLES);
+
+  ForIndex(i_mesh, g_meshformat.m_meshes.size() / 4) {
+    v3f col = randomColorFromIndex(i_mesh);
+    glColor3fv(&col[0]);
+    
+    v3f barycenter(0.0f);
+    ForIndex(off, 4) {
+      MeshFormat_msh::t_VertexData *vertex = reinterpret_cast<MeshFormat_msh::t_VertexData*>(g_Mesh->vertexDataAt(g_meshformat.m_meshes[i_mesh * 4 + off]));
+      barycenter += vertex->pos / 4.0f;
+    }
+    
+
+    if (barycenter[0] > 0.5f) {
+      ForIndex(off, 4) {
+        ForIndex(i, 3) {
+          MeshFormat_msh::t_VertexData *vertex = reinterpret_cast<MeshFormat_msh::t_VertexData*>(g_Mesh->vertexDataAt(g_meshformat.m_meshes[i_mesh * 4 + (off + i) % 4]));
+          glVertex3f(vertex->pos[0], vertex->pos[1], vertex->pos[2]);
+        }
+      }
+    }
+  }
+  glEnd();
+
+
+  /// draw bbox
 
   v3f min = g_Mesh->bbox().minCorner();
   v3f max = g_Mesh->bbox().maxCorner();
 
   glLineWidth(2.5);
-  glColor3f(1.0, 0.0, 0.0);
+  glColor3f(1.0, 1.0, 0.0);
   glBegin(GL_LINES);
   glVertex3f(min[0], min[1], min[2]); glVertex3f(max[0], min[1], min[2]);
   glVertex3f(max[0], min[1], min[2]); glVertex3f(max[0], max[1], min[2]);
@@ -320,6 +354,8 @@ int main(int argc, char **argv)
     TrackballUI::setCenter(V3F(.5f, .5f, .5f));
     cerr << "[OK]" << endl;
 
+    SimpleUI::bindImGui();
+    SimpleUI::initImGui();
     /// help
     printf("[q]     - quit\n");
 
@@ -333,14 +369,14 @@ int main(int argc, char **argv)
 
 #ifdef OPENGL
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
+    //glEnable(GL_LIGHT0);
+    //glEnable(GL_LIGHTING);
 #endif
 
     // open mesh
     cerr << "Loading mesh      ";
-    MeshFormat_msh meshformat;
-    g_Mesh = TriangleMesh_Ptr(meshformat.load("E:/TetViz/meshs/CuteOcto_.msh"));
+    
+    g_Mesh = TriangleMesh_Ptr(g_meshformat.load("D:/Github/TetViz/meshs/CuteOcto_.msh"));
     g_Mesh->scaleToUnitCube();
     cerr << "[OK]" << endl;
     cerr << sprint("  mesh contains %d vertices and %d triangles\n", g_Mesh->numVertices(), g_Mesh->numTriangles());
